@@ -17,9 +17,14 @@ try
     var scanner = new AccessibilityScanner();
     var result = await scanner.ScanAsync(options.Url, options.TimeoutMs, options.Headed);
 
-    var reporter = new ConsoleReporter();
-    reporter.Report(result, options.Url);
-    return reporter.ComputeExitCode(result);
+    var scannedAt = DateTimeOffset.Now;
+    var reportText = ReportFormatter.Build(result, options.Url, scannedAt);
+    Console.WriteLine(reportText);
+
+    var savedPath = ReportFileWriter.Save(reportText, options.Url, scannedAt, options.ReportDir);
+    Console.WriteLine($"Report saved to: {savedPath}");
+
+    return ReportFormatter.ComputeExitCode(result);
 }
 catch (TimeoutException)
 {

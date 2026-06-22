@@ -3,47 +3,52 @@ using Deque.AxeCore.Commons;
 
 namespace WcagAuditor;
 
-internal sealed class ConsoleReporter
+internal static class ReportFormatter
 {
     private const int HtmlSnippetMaxLength = 150;
 
-    public void Report(AxeResult result, Uri scannedUrl)
+    public static string Build(AxeResult result, Uri scannedUrl, DateTimeOffset scannedAt)
     {
+        var sb = new StringBuilder();
+        sb.AppendLine("WCAG 2.1 AA Accessibility Report");
+        sb.AppendLine($"Scanned URL: {scannedUrl}");
+        sb.AppendLine($"Scanned at:  {scannedAt:yyyy-MM-dd HH:mm:ss zzz}");
+
         var violations = result.Violations ?? Array.Empty<AxeResultItem>();
 
         if (violations.Length == 0)
         {
-            Console.WriteLine("No WCAG 2.1 AA violations detected by axe-core on this page.");
-            Console.WriteLine("Note: automated tools catch roughly 30-50% of WCAG issues — manual review is still recommended.");
-            Console.WriteLine($"Scanned: {scannedUrl}");
-            return;
+            sb.AppendLine();
+            sb.AppendLine("No WCAG 2.1 AA violations detected by axe-core on this page.");
+            sb.AppendLine("Note: automated tools catch roughly 30-50% of WCAG issues — manual review is still recommended.");
+            return sb.ToString();
         }
 
         foreach (var violation in violations)
         {
-            Console.WriteLine();
-            Console.WriteLine($"[{violation.Impact?.ToUpperInvariant() ?? "UNKNOWN"}] {violation.Id} — {violation.Help}");
-            Console.WriteLine($"  WCAG tags: {string.Join(", ", violation.Tags ?? Array.Empty<string>())}");
-            Console.WriteLine($"  Help:      {violation.HelpUrl}");
+            sb.AppendLine();
+            sb.AppendLine($"[{violation.Impact?.ToUpperInvariant() ?? "UNKNOWN"}] {violation.Id} — {violation.Help}");
+            sb.AppendLine($"  WCAG tags: {string.Join(", ", violation.Tags ?? Array.Empty<string>())}");
+            sb.AppendLine($"  Help:      {violation.HelpUrl}");
 
             var nodes = violation.Nodes ?? Array.Empty<AxeResultNode>();
-            Console.WriteLine($"  Affected elements ({nodes.Length}):");
+            sb.AppendLine($"  Affected elements ({nodes.Length}):");
 
             for (var i = 0; i < nodes.Length; i++)
             {
                 var node = nodes[i];
-                Console.WriteLine($"    {i + 1}. Selector: {node.Target?.Selector ?? "(unknown)"}");
-                Console.WriteLine($"       HTML:     {Truncate(node.Html)}");
-                Console.WriteLine($"       Fix:      {BuildFixSuggestion(node)}");
+                sb.AppendLine($"    {i + 1}. Selector: {node.Target?.Selector ?? "(unknown)"}");
+                sb.AppendLine($"       HTML:     {Truncate(node.Html)}");
+                sb.AppendLine($"       Fix:      {BuildFixSuggestion(node)}");
             }
         }
 
-        Console.WriteLine();
-        Console.WriteLine(BuildSummaryLine(violations));
-        Console.WriteLine($"Scanned: {scannedUrl}");
+        sb.AppendLine();
+        sb.AppendLine(BuildSummaryLine(violations));
+        return sb.ToString();
     }
 
-    public int ComputeExitCode(AxeResult result) =>
+    public static int ComputeExitCode(AxeResult result) =>
         (result.Violations?.Length ?? 0) > 0 ? 1 : 0;
 
     private static string BuildFixSuggestion(AxeResultNode node)

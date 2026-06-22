@@ -11,5 +11,8 @@ obj/
 # Test results
 TestResults/
 
+# Saved WCAG scan reports (local output, not source)
+wcag-reports/
+
 # Claude Code local settings (machine-specific, not for sharing)
 .claude/settings.local.json

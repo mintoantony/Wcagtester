@@ -21,12 +21,13 @@ The second command downloads the Chromium browser binary Playwright uses to rend
 ## Usage
 
 ```powershell
-dotnet run -- <url> [--timeout-ms <n>] [--headed]
+dotnet run -- <url> [--timeout-ms <n>] [--headed] [--report-dir <path>]
 ```
 
 - `<url>` — the page to audit. `http://`, `https://`, and `file://` URLs are supported. If you omit the scheme (e.g. `example.com`), `https://` is assumed.
 - `--timeout-ms <n>` — navigation timeout in milliseconds (default `30000`).
 - `--headed` — run the browser visibly instead of headless, useful for debugging.
+- `--report-dir <path>` — folder to save the report file in (default `wcag-reports`, created relative to the current working directory).
 
 Example:
 
@@ -37,6 +38,16 @@ dotnet run -- https://example.com
 ## Output
 
 Each violation is printed with its rule ID, WCAG-tag-derived impact level, a help link, every affected element (CSS selector + truncated HTML), and a "Fix" suggestion assembled from axe-core's check messages. A summary line totals violations by impact.
+
+## Saved reports
+
+Every scan also saves the same report to a text file, named with the scan's date, time, and URL, e.g.:
+
+```
+wcag-reports/20260622_153045_example.com.txt
+```
+
+The folder is created automatically (default `wcag-reports` in the current working directory; override with `--report-dir`). The printed `Report saved to: <path>` line at the end of a run shows exactly where it went, for later review or diffing between runs.
 
 ## Exit codes
 

@@ -7,21 +7,25 @@ internal sealed class CliArgumentException : Exception
 
 internal sealed class CliOptions
 {
+    private const string UsageMessage =
+        "a URL argument is required.\nUsage: WcagAuditor <url> [--timeout-ms <n>] [--headed] [--report-dir <path>]";
+
     public required Uri Url { get; init; }
     public int TimeoutMs { get; init; } = 30000;
     public bool Headed { get; init; }
+    public string ReportDir { get; init; } = "wcag-reports";
 
     public static CliOptions Parse(string[] args)
     {
         if (args.Length == 0)
         {
-            throw new CliArgumentException(
-                "a URL argument is required.\nUsage: WcagAuditor <url> [--timeout-ms <n>] [--headed]");
+            throw new CliArgumentException(UsageMessage);
         }
 
         string? rawUrl = null;
         int timeoutMs = 30000;
         bool headed = false;
+        string reportDir = "wcag-reports";
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -37,6 +41,14 @@ internal sealed class CliOptions
                 case "--headed":
                     headed = true;
                     break;
+                case "--report-dir":
+                    if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                    {
+                        throw new CliArgumentException("--report-dir requires a folder path value.");
+                    }
+                    reportDir = args[i + 1];
+                    i++;
+                    break;
                 default:
                     if (rawUrl is not null)
                     {
@@ -49,13 +61,12 @@ internal sealed class CliOptions
 
         if (rawUrl is null)
         {
-            throw new CliArgumentException(
-                "a URL argument is required.\nUsage: WcagAuditor <url> [--timeout-ms <n>] [--headed]");
+            throw new CliArgumentException(UsageMessage);
         }
 
         var url = ParseUrl(rawUrl);
 
-        return new CliOptions { Url = url, TimeoutMs = timeoutMs, Headed = headed };
+        return new CliOptions { Url = url, TimeoutMs = timeoutMs, Headed = headed, ReportDir = reportDir };
     }
 
     private static Uri ParseUrl(string rawUrl)

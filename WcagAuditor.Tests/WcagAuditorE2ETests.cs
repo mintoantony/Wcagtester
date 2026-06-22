@@ -12,7 +12,11 @@ public sealed class WcagAuditorE2ETests
     [Fact]
     public void Scan_BadFixture_ReportsAllFourSeededViolations_AndExitsWithCode1()
     {
-        var result = CliProcessRunner.Run(new[] { TestPaths.FixtureUrl("bad-accessibility.html") });
+        using var reportDir = new TempReportDir();
+        var result = CliProcessRunner.Run(new[]
+        {
+            TestPaths.FixtureUrl("bad-accessibility.html"), "--report-dir", reportDir.Path,
+        });
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("image-alt", result.StdOut);
@@ -25,10 +29,39 @@ public sealed class WcagAuditorE2ETests
     [Fact]
     public void Scan_CleanFixture_ReportsNoViolations_AndExitsWithCode0()
     {
-        var result = CliProcessRunner.Run(new[] { TestPaths.FixtureUrl("clean.html") });
+        using var reportDir = new TempReportDir();
+        var result = CliProcessRunner.Run(new[]
+        {
+            TestPaths.FixtureUrl("clean.html"), "--report-dir", reportDir.Path,
+        });
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("No WCAG 2.1 AA violations detected", result.StdOut);
+    }
+
+    [Fact]
+    public void Scan_CleanFixture_SavesReportFile_NamedWithTimestampAndUrl_ContainingFullReport()
+    {
+        using var reportDir = new TempReportDir();
+        var result = CliProcessRunner.Run(new[]
+        {
+            TestPaths.FixtureUrl("clean.html"), "--report-dir", reportDir.Path,
+        });
+
+        Assert.Equal(0, result.ExitCode);
+
+        var savedFiles = Directory.Exists(reportDir.Path) ? Directory.GetFiles(reportDir.Path, "*.txt") : Array.Empty<string>();
+        var savedFile = Assert.Single(savedFiles);
+        var fileName = Path.GetFileName(savedFile);
+        Assert.Matches(@"^\d{8}_\d{6}_.+\.txt$", fileName);
+
+        var savedContent = File.ReadAllText(savedFile);
+        Assert.Contains("WCAG 2.1 AA Accessibility Report", savedContent);
+        Assert.Contains("Scanned URL:", savedContent);
+        Assert.Contains("Scanned at:", savedContent);
+        Assert.Contains("No WCAG 2.1 AA violations detected", savedContent);
+
+        Assert.Contains($"Report saved to: {savedFile}", result.StdOut);
     }
 
     [Fact]
@@ -86,8 +119,11 @@ public sealed class WcagAuditorE2ETests
     public void Scan_PageWithOutboundLink_NeverRequestsTheLinkedPage()
     {
         using var server = new LocalTestServer();
+        using var reportDir = new TempReportDir();
 
-        var result = CliProcessRunner.Run(new[] { server.BaseUrl }, timeout: TimeSpan.FromSeconds(30));
+        var result = CliProcessRunner.Run(
+            new[] { server.BaseUrl, "--report-dir", reportDir.Path },
+            timeout: TimeSpan.FromSeconds(30));
 
         Assert.Equal(0, result.ExitCode);
         Assert.True(server.RequestCount("/") >= 1, "expected the root page to have been requested");
