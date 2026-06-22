@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Test results
+TestResults/
+
+# Claude Code local settings (machine-specific, not for sharing)
+.claude/settings.local.json
